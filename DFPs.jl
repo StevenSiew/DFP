@@ -1,3 +1,4 @@
+__precompile__()
 module DFPs
 
     import Base: ==, +, -, *, /, \, inv, ^, <, <=, <<, >>, %, ÷
@@ -16,6 +17,7 @@ module DFPs
     export call, call_viaFloat64
     export DFP_listbuilder, DFP_normalise, DFP_relativeEpsilon
     export DFP_lengthMantissa, DFP_mapBinaryFuncToList
+    export DFP_convertOtherFloatToCommonString
     export DFP_toFortranString, DFP_toCommonString, DFP_toIntegerString
     export DFP_toShortCommonString, DFP_toTinyCommonString, DFP_toNumCommonString
     export DFP_toExplainationString, DFP_toNdigitString
@@ -92,7 +94,7 @@ module DFPs
     # Define our new Type
     IntegerOrSymbol = Union{Integer,Symbol}
 
-    struct DFP{N} <: Real
+    struct DFP{N} <: AbstractFloat
         s::Int8
         expo::BigInt
         m::Array{Int8,1}
@@ -115,7 +117,7 @@ module DFPs
 ## Constant definitions
 
     # set the version number here
-    const DFP_VERSION = v"1.2.6"
+    const DFP_VERSION = v"1.3.2"
 
     const GUARD_DIGITS = 4
 
@@ -434,7 +436,10 @@ module DFPs
     end
 
     # Rounding
-    round(x::DFP,r::RoundingMode=RoundNearest; digits::Integer=0, sigdigits::Integer=0, base = 10) = DFP_round(x,r,digits=digits,sigdigits=sigdigits,base=base)
+    round(x::DFP,r::RoundingMode; digits::Integer=0, sigdigits::Integer=0, base = 10) = DFP_round(x,r,digits=digits,sigdigits=sigdigits,base=base)
+    round(x::DFP,r::RoundingMode{:NearestTiesAway}; digits::Integer=0, sigdigits::Integer=0, base = 10) = DFP_round(x,r,digits=digits,sigdigits=sigdigits,base=base)
+    round(x::DFP,r::RoundingMode{:NearestTiesUp}; digits::Integer=0, sigdigits::Integer=0, base = 10) = DFP_round(x,r,digits=digits,sigdigits=sigdigits,base=base)
+
 
     # nextfloat, prevfloat and eps
     nextfloat(x::DFP) = x.s == 0 ? DFP_roundup(x) : DFP_rounddown(x)
@@ -1290,6 +1295,16 @@ module DFPs
         a[1]
     end
 
+    function DFP_convertOtherFloatToCommonString(x)
+        # Limit the convertion to only the first 100 decimal digits
+        local result = string(convert(DFP{100},x))
+        result = rstrip(x->x=='0',result)
+        if last(result)=='.'
+            result = result * '0'
+        end
+        return result
+    end
+
     function DFP_toFortranString(a::DFP;EString::String="E")
         # First check if it is an Error
         if DFP_isDivByZero(a)
@@ -1655,111 +1670,111 @@ module DFPs
     const DFP_0 = DFP_createZero
 
     @inline function DFP_createOne(prec)
-        return DFP{prec}(0,0,vcat([1],DFP_listbuilder(prec - 1)))
+        return prec == 0 ? DFP{0}(0,0,[]) : DFP{prec}(0,0,vcat([1],DFP_listbuilder(prec - 1)))
     end
 
     const DFP_1 = DFP_createOne
 
     @inline function DFP_createHalf(prec)
-        return DFP{prec}(0,-1,vcat([5],DFP_listbuilder(prec - 1)))
+        return prec == 0 ? DFP{0}(0,0,[]) : DFP{prec}(0,-1,vcat([5],DFP_listbuilder(prec - 1)))
     end
 
     const DFP_half = DFP_createHalf
 
     @inline function DFP_createOneTenth(prec)
-        return DFP{prec}(0,-1,vcat([1],DFP_listbuilder(prec - 1)))
+        return prec == 0 ? DFP{0}(0,0,[]) : DFP{prec}(0,-1,vcat([1],DFP_listbuilder(prec - 1)))
     end
 
     @inline function DFP_createMinusOne(prec)
-        return DFP{prec}(1,0,vcat([1],DFP_listbuilder(prec - 1)))
+        return prec == 0 ? DFP{0}(0,0,[]) : DFP{prec}(1,0,vcat([1],DFP_listbuilder(prec - 1)))
     end
 
     @inline function DFP_createTwo(prec)
-        return DFP{prec}(0,0,vcat([2],DFP_listbuilder(prec - 1)))
+        return prec == 0 ? DFP{0}(0,0,[]) : DFP{prec}(0,0,vcat([2],DFP_listbuilder(prec - 1)))
     end
 
     const DFP_2 = DFP_createTwo
 
     @inline function DFP_createThree(prec)
-        return DFP{prec}(0,0,vcat([3],DFP_listbuilder(prec - 1)))
+        return prec == 0 ? DFP{0}(0,0,[]) : DFP{prec}(0,0,vcat([3],DFP_listbuilder(prec - 1)))
     end
 
     const DFP_3 = DFP_createThree
 
     @inline function DFP_createFour(prec)
-        return DFP{prec}(0,0,vcat([4],DFP_listbuilder(prec - 1)))
+        return prec == 0 ? DFP{0}(0,0,[]) : DFP{prec}(0,0,vcat([4],DFP_listbuilder(prec - 1)))
     end
 
     const DFP_4 = DFP_createFour
 
     @inline function DFP_createFive(prec)
-        return DFP{prec}(0,0,vcat([5],DFP_listbuilder(prec - 1)))
+        return prec == 0 ? DFP{0}(0,0,[]) : DFP{prec}(0,0,vcat([5],DFP_listbuilder(prec - 1)))
     end
 
     const DFP_5 = DFP_createFive
 
     @inline function DFP_createEight(prec)
-        return DFP{prec}(0,0,vcat([8],DFP_listbuilder(prec - 1)))
+        return prec == 0 ? DFP{0}(0,0,[]) : DFP{prec}(0,0,vcat([8],DFP_listbuilder(prec - 1)))
     end
 
     const DFP_8 = DFP_createEight
 
     @inline function DFP_createTen(prec)
-        return DFP{prec}(0,1,vcat([1],DFP_listbuilder(prec - 1)))
+        return prec == 0 ? DFP{0}(0,0,[]) : DFP{prec}(0,1,vcat([1],DFP_listbuilder(prec - 1)))
     end
 
     const DFP_10 = DFP_createTen
 
     @inline function DFP_createFifteen(prec)
-        return DFP{prec}(0,1,vcat([1,5],DFP_listbuilder(prec - 2)))
+        return prec == 0 ? DFP{0}(0,0,[]) : DFP{prec}(0,1,vcat([1,5],DFP_listbuilder(prec - 2)))
     end
 
     const DFP_15 = DFP_createFifteen
 
     @inline function DFP_createThirty(prec)
-        return DFP{prec}(0,1,vcat([3],DFP_listbuilder(prec - 1)))
+        return prec == 0 ? DFP{0}(0,0,[]) : DFP{prec}(0,1,vcat([3],DFP_listbuilder(prec - 1)))
     end
 
     const DFP_30 = DFP_createThirty
 
     @inline function DFP_createFortyFive(prec)
-        return DFP{prec}(0,1,vcat([4,5],DFP_listbuilder(prec - 2)))
+        return prec == 0 ? DFP{0}(0,0,[]) : DFP{prec}(0,1,vcat([4,5],DFP_listbuilder(prec - 2)))
     end
 
     const DFP_45 = DFP_createFortyFive
 
     @inline function DFP_createSixty(prec)
-        return DFP{prec}(0,1,vcat([6],DFP_listbuilder(prec - 1)))
+        return prec == 0 ? DFP{0}(0,0,[]) : DFP{prec}(0,1,vcat([6],DFP_listbuilder(prec - 1)))
     end
 
     const DFP_60 = DFP_createSixty
 
     @inline function DFP_createSixtyFour(prec)
-        return DFP{prec}(0,1,vcat([6,4],DFP_listbuilder(prec - 2)))
+        return prec == 0 ? DFP{0}(0,0,[]) : DFP{prec}(0,1,vcat([6,4],DFP_listbuilder(prec - 2)))
     end
 
     const DFP_64 = DFP_createSixtyFour
 
     @inline function DFP_createNinety(prec)
-        return DFP{prec}(0,1,vcat([9],DFP_listbuilder(prec - 1)))
+        return prec == 0 ? DFP{0}(0,0,[]) : DFP{prec}(0,1,vcat([9],DFP_listbuilder(prec - 1)))
     end
 
     const DFP_90 = DFP_createNinety
 
     @inline function DFP_createOneEighty(prec)
-        return DFP{prec}(0,2,vcat([1,8],DFP_listbuilder(prec - 2)))
+        return prec == 0 ? DFP{0}(0,0,[]) : DFP{prec}(0,2,vcat([1,8],DFP_listbuilder(prec - 2)))
     end
 
     const DFP_180 = DFP_createOneEighty
 
     @inline function DFP_createTwoSeventy(prec)
-        return DFP{prec}(0,2,vcat([2,7],DFP_listbuilder(prec - 2)))
+        return prec == 0 ? DFP{0}(0,0,[]) : DFP{prec}(0,2,vcat([2,7],DFP_listbuilder(prec - 2)))
     end
 
     const DFP_270 = DFP_createTwoSeventy
 
     @inline function DFP_createThreeSixty(prec)
-        return DFP{prec}(0,2,vcat([3,6],DFP_listbuilder(prec - 2)))
+        return prec == 0 ? DFP{0}(0,0,[]) : DFP{prec}(0,2,vcat([3,6],DFP_listbuilder(prec - 2)))
     end
 
     const DFP_360 = DFP_createThreeSixty
@@ -1872,25 +1887,25 @@ module DFPs
     @inline function DFP_kind(a::DFP)
         # First check if mantissa is all zero
         if all(  map(x->x==0,a.m)  )
-            # All the mantissa digits are zer0
+            # All the mantissa digits are zero
             if a.s == 0
                 if a.expo == 0
-                    # The number is zero
+                    # The number is zero   (signbit==0 and expo==0)
                     return 0
                 elseif (0 < a.expo < 7) || (9 < a.expo)
                     # Ordinary Error
                     return 4
                 elseif a.expo == 7
-                    # Inf
+                    # Inf          (signbit==0 and expo==7)
                     return 1
                 elseif a.expo == 8
-                    # -Inf
+                    # -Inf         (signbit==0 and expo==8)
                     return 2
                 elseif a.expo == 9
-                    # NaN
+                    # NaN          (signbit==0 and expo==9)
                     return 3
                 end
-            else
+            else   # a.s != 0      signbit is not 0
                 if a.expo == 0
                     # Critical Error
                     return 4
@@ -4381,6 +4396,275 @@ module DFPs
         LogDict["MathematicaLine"] = Create_MathematicaLine(LogDict["tracklog"],func,FuncType = FuncType)
         return returnvalue
     end
+
+## precompile function for the DFP module
+
+# File opened at 2024-08-05 18:04
+# Inside function print_DFP(f,4)
+DFP_precompile_001 = convert(DFP{4},Base.pi)
+DFP_precompile_002 = sqrt(DFP{4}(2))
+DFP_precompile_003 = sqrt(DFP{4}(0.7))
+DFP_precompile_004 = DFP_precompile_001 + DFP_precompile_002
+DFP_precompile_005 = DFP_precompile_001 - DFP_precompile_002
+DFP_precompile_007 = DFP_precompile_001 * DFP_precompile_002
+DFP_precompile_008 = DFP_precompile_001 / DFP_precompile_002
+DFP_precompile_009 = DFP_precompile_001 ^ DFP_precompile_002
+DFP_precompile_010 = sin(DFP_precompile_002)
+DFP_precompile_011 = cos(DFP_precompile_002)
+DFP_precompile_012 = tan(DFP_precompile_002)
+DFP_precompile_013 = log(DFP_precompile_002)
+DFP_precompile_014 = log(DFP_precompile_001,DFP_precompile_002)
+DFP_precompile_015 = log2(DFP_precompile_002)
+DFP_precompile_016 = log10(DFP_precompile_002)
+DFP_precompile_017 = exp(DFP_precompile_002)
+DFP_precompile_018 = exp2(DFP_precompile_002)
+DFP_precompile_019 = exp10(DFP_precompile_002)
+DFP_precompile_020 = sind(DFP_precompile_002)
+DFP_precompile_021 = cosd(DFP_precompile_002)
+DFP_precompile_022 = tand(DFP_precompile_002)
+DFP_precompile_023 = asin(DFP_precompile_003)
+DFP_precompile_024 = acos(DFP_precompile_003)
+DFP_precompile_025 = atan(DFP_precompile_002)
+DFP_precompile_026 = asind(DFP_precompile_003)
+DFP_precompile_027 = acosd(DFP_precompile_003)
+DFP_precompile_028 = atand(DFP_precompile_002)
+DFP_precompile_029 = atan(DFP_precompile_003,DFP_precompile_002)
+DFP_precompile_030 = atand(DFP_precompile_003,DFP_precompile_002)
+DFP_precompile_031 = DFP_precompile_003 == DFP_precompile_002
+DFP_precompile_032 = DFP_precompile_003 != DFP_precompile_002
+DFP_precompile_033 = DFP_precompile_003 < DFP_precompile_002
+DFP_precompile_034 = DFP_precompile_003 <= DFP_precompile_002
+DFP_precompile_035 = DFP_precompile_003 > DFP_precompile_002
+DFP_precompile_036 = DFP_precompile_003 >= DFP_precompile_002
+# Existing function print_DFP(f,4)
+
+# Inside function print_DFP(f,8)
+DFP_precompile_037 = convert(DFP{8},Base.pi)
+DFP_precompile_038 = sqrt(DFP{8}(2))
+DFP_precompile_039 = sqrt(DFP{8}(0.7))
+DFP_precompile_040 = DFP_precompile_037 + DFP_precompile_038
+DFP_precompile_041 = DFP_precompile_037 - DFP_precompile_038
+DFP_precompile_043 = DFP_precompile_037 * DFP_precompile_038
+DFP_precompile_044 = DFP_precompile_037 / DFP_precompile_038
+DFP_precompile_045 = DFP_precompile_037 ^ DFP_precompile_038
+DFP_precompile_046 = sin(DFP_precompile_038)
+DFP_precompile_047 = cos(DFP_precompile_038)
+DFP_precompile_048 = tan(DFP_precompile_038)
+DFP_precompile_049 = log(DFP_precompile_038)
+DFP_precompile_050 = log(DFP_precompile_037,DFP_precompile_038)
+DFP_precompile_051 = log2(DFP_precompile_038)
+DFP_precompile_052 = log10(DFP_precompile_038)
+DFP_precompile_053 = exp(DFP_precompile_038)
+DFP_precompile_054 = exp2(DFP_precompile_038)
+DFP_precompile_055 = exp10(DFP_precompile_038)
+DFP_precompile_056 = sind(DFP_precompile_038)
+DFP_precompile_057 = cosd(DFP_precompile_038)
+DFP_precompile_058 = tand(DFP_precompile_038)
+DFP_precompile_059 = asin(DFP_precompile_039)
+DFP_precompile_060 = acos(DFP_precompile_039)
+DFP_precompile_061 = atan(DFP_precompile_038)
+DFP_precompile_062 = asind(DFP_precompile_039)
+DFP_precompile_063 = acosd(DFP_precompile_039)
+DFP_precompile_064 = atand(DFP_precompile_038)
+DFP_precompile_065 = atan(DFP_precompile_039,DFP_precompile_038)
+DFP_precompile_066 = atand(DFP_precompile_039,DFP_precompile_038)
+DFP_precompile_067 = DFP_precompile_039 == DFP_precompile_038
+DFP_precompile_068 = DFP_precompile_039 != DFP_precompile_038
+DFP_precompile_069 = DFP_precompile_039 < DFP_precompile_038
+DFP_precompile_070 = DFP_precompile_039 <= DFP_precompile_038
+DFP_precompile_071 = DFP_precompile_039 > DFP_precompile_038
+DFP_precompile_072 = DFP_precompile_039 >= DFP_precompile_038
+# Existing function print_DFP(f,8)
+
+# Inside function print_DFP(f,16)
+DFP_precompile_073 = convert(DFP{16},Base.pi)
+DFP_precompile_074 = sqrt(DFP{16}(2))
+DFP_precompile_075 = sqrt(DFP{16}(0.7))
+DFP_precompile_076 = DFP_precompile_073 + DFP_precompile_074
+DFP_precompile_077 = DFP_precompile_073 - DFP_precompile_074
+DFP_precompile_079 = DFP_precompile_073 * DFP_precompile_074
+DFP_precompile_080 = DFP_precompile_073 / DFP_precompile_074
+DFP_precompile_081 = DFP_precompile_073 ^ DFP_precompile_074
+DFP_precompile_082 = sin(DFP_precompile_074)
+DFP_precompile_083 = cos(DFP_precompile_074)
+DFP_precompile_084 = tan(DFP_precompile_074)
+DFP_precompile_085 = log(DFP_precompile_074)
+DFP_precompile_086 = log(DFP_precompile_073,DFP_precompile_074)
+DFP_precompile_087 = log2(DFP_precompile_074)
+DFP_precompile_088 = log10(DFP_precompile_074)
+DFP_precompile_089 = exp(DFP_precompile_074)
+DFP_precompile_090 = exp2(DFP_precompile_074)
+DFP_precompile_091 = exp10(DFP_precompile_074)
+DFP_precompile_092 = sind(DFP_precompile_074)
+DFP_precompile_093 = cosd(DFP_precompile_074)
+DFP_precompile_094 = tand(DFP_precompile_074)
+DFP_precompile_095 = asin(DFP_precompile_075)
+DFP_precompile_096 = acos(DFP_precompile_075)
+DFP_precompile_097 = atan(DFP_precompile_074)
+DFP_precompile_098 = asind(DFP_precompile_075)
+DFP_precompile_099 = acosd(DFP_precompile_075)
+DFP_precompile_100 = atand(DFP_precompile_074)
+DFP_precompile_101 = atan(DFP_precompile_075,DFP_precompile_074)
+DFP_precompile_102 = atand(DFP_precompile_075,DFP_precompile_074)
+DFP_precompile_103 = DFP_precompile_075 == DFP_precompile_074
+DFP_precompile_104 = DFP_precompile_075 != DFP_precompile_074
+DFP_precompile_105 = DFP_precompile_075 < DFP_precompile_074
+DFP_precompile_106 = DFP_precompile_075 <= DFP_precompile_074
+DFP_precompile_107 = DFP_precompile_075 > DFP_precompile_074
+DFP_precompile_108 = DFP_precompile_075 >= DFP_precompile_074
+# Existing function print_DFP(f,16)
+
+# Inside function print_DFP(f,32)
+DFP_precompile_109 = convert(DFP{32},Base.pi)
+DFP_precompile_110 = sqrt(DFP{32}(2))
+DFP_precompile_111 = sqrt(DFP{32}(0.7))
+DFP_precompile_112 = DFP_precompile_109 + DFP_precompile_110
+DFP_precompile_113 = DFP_precompile_109 - DFP_precompile_110
+DFP_precompile_115 = DFP_precompile_109 * DFP_precompile_110
+DFP_precompile_116 = DFP_precompile_109 / DFP_precompile_110
+DFP_precompile_117 = DFP_precompile_109 ^ DFP_precompile_110
+DFP_precompile_118 = sin(DFP_precompile_110)
+DFP_precompile_119 = cos(DFP_precompile_110)
+DFP_precompile_120 = tan(DFP_precompile_110)
+DFP_precompile_121 = log(DFP_precompile_110)
+DFP_precompile_122 = log(DFP_precompile_109,DFP_precompile_110)
+DFP_precompile_123 = log2(DFP_precompile_110)
+DFP_precompile_124 = log10(DFP_precompile_110)
+DFP_precompile_125 = exp(DFP_precompile_110)
+DFP_precompile_126 = exp2(DFP_precompile_110)
+DFP_precompile_127 = exp10(DFP_precompile_110)
+DFP_precompile_128 = sind(DFP_precompile_110)
+DFP_precompile_129 = cosd(DFP_precompile_110)
+DFP_precompile_130 = tand(DFP_precompile_110)
+DFP_precompile_131 = asin(DFP_precompile_111)
+DFP_precompile_132 = acos(DFP_precompile_111)
+DFP_precompile_133 = atan(DFP_precompile_110)
+DFP_precompile_134 = asind(DFP_precompile_111)
+DFP_precompile_135 = acosd(DFP_precompile_111)
+DFP_precompile_136 = atand(DFP_precompile_110)
+DFP_precompile_137 = atan(DFP_precompile_111,DFP_precompile_110)
+DFP_precompile_138 = atand(DFP_precompile_111,DFP_precompile_110)
+DFP_precompile_139 = DFP_precompile_111 == DFP_precompile_110
+DFP_precompile_140 = DFP_precompile_111 != DFP_precompile_110
+DFP_precompile_141 = DFP_precompile_111 < DFP_precompile_110
+DFP_precompile_142 = DFP_precompile_111 <= DFP_precompile_110
+DFP_precompile_143 = DFP_precompile_111 > DFP_precompile_110
+DFP_precompile_144 = DFP_precompile_111 >= DFP_precompile_110
+# Existing function print_DFP(f,32)
+
+# Inside function print_DFP(f,64)
+DFP_precompile_145 = convert(DFP{64},Base.pi)
+DFP_precompile_146 = sqrt(DFP{64}(2))
+DFP_precompile_147 = sqrt(DFP{64}(0.7))
+DFP_precompile_148 = DFP_precompile_145 + DFP_precompile_146
+DFP_precompile_149 = DFP_precompile_145 - DFP_precompile_146
+DFP_precompile_151 = DFP_precompile_145 * DFP_precompile_146
+DFP_precompile_152 = DFP_precompile_145 / DFP_precompile_146
+DFP_precompile_153 = DFP_precompile_145 ^ DFP_precompile_146
+DFP_precompile_154 = sin(DFP_precompile_146)
+DFP_precompile_155 = cos(DFP_precompile_146)
+DFP_precompile_156 = tan(DFP_precompile_146)
+DFP_precompile_157 = log(DFP_precompile_146)
+DFP_precompile_158 = log(DFP_precompile_145,DFP_precompile_146)
+DFP_precompile_159 = log2(DFP_precompile_146)
+DFP_precompile_160 = log10(DFP_precompile_146)
+DFP_precompile_161 = exp(DFP_precompile_146)
+DFP_precompile_162 = exp2(DFP_precompile_146)
+DFP_precompile_163 = exp10(DFP_precompile_146)
+DFP_precompile_164 = sind(DFP_precompile_146)
+DFP_precompile_165 = cosd(DFP_precompile_146)
+DFP_precompile_166 = tand(DFP_precompile_146)
+DFP_precompile_167 = asin(DFP_precompile_147)
+DFP_precompile_168 = acos(DFP_precompile_147)
+DFP_precompile_169 = atan(DFP_precompile_146)
+DFP_precompile_170 = asind(DFP_precompile_147)
+DFP_precompile_171 = acosd(DFP_precompile_147)
+DFP_precompile_172 = atand(DFP_precompile_146)
+DFP_precompile_173 = atan(DFP_precompile_147,DFP_precompile_146)
+DFP_precompile_174 = atand(DFP_precompile_147,DFP_precompile_146)
+DFP_precompile_175 = DFP_precompile_147 == DFP_precompile_146
+DFP_precompile_176 = DFP_precompile_147 != DFP_precompile_146
+DFP_precompile_177 = DFP_precompile_147 < DFP_precompile_146
+DFP_precompile_178 = DFP_precompile_147 <= DFP_precompile_146
+DFP_precompile_179 = DFP_precompile_147 > DFP_precompile_146
+DFP_precompile_180 = DFP_precompile_147 >= DFP_precompile_146
+# Existing function print_DFP(f,64)
+
+# Inside function print_DFP(f,80)
+DFP_precompile_181 = convert(DFP{80},Base.pi)
+DFP_precompile_182 = sqrt(DFP{80}(2))
+DFP_precompile_183 = sqrt(DFP{80}(0.7))
+DFP_precompile_184 = DFP_precompile_181 + DFP_precompile_182
+DFP_precompile_185 = DFP_precompile_181 - DFP_precompile_182
+DFP_precompile_187 = DFP_precompile_181 * DFP_precompile_182
+DFP_precompile_188 = DFP_precompile_181 / DFP_precompile_182
+DFP_precompile_189 = DFP_precompile_181 ^ DFP_precompile_182
+DFP_precompile_190 = sin(DFP_precompile_182)
+DFP_precompile_191 = cos(DFP_precompile_182)
+DFP_precompile_192 = tan(DFP_precompile_182)
+DFP_precompile_193 = log(DFP_precompile_182)
+DFP_precompile_194 = log(DFP_precompile_181,DFP_precompile_182)
+DFP_precompile_195 = log2(DFP_precompile_182)
+DFP_precompile_196 = log10(DFP_precompile_182)
+DFP_precompile_197 = exp(DFP_precompile_182)
+DFP_precompile_198 = exp2(DFP_precompile_182)
+DFP_precompile_199 = exp10(DFP_precompile_182)
+DFP_precompile_200 = sind(DFP_precompile_182)
+DFP_precompile_201 = cosd(DFP_precompile_182)
+DFP_precompile_202 = tand(DFP_precompile_182)
+DFP_precompile_203 = asin(DFP_precompile_183)
+DFP_precompile_204 = acos(DFP_precompile_183)
+DFP_precompile_205 = atan(DFP_precompile_182)
+DFP_precompile_206 = asind(DFP_precompile_183)
+DFP_precompile_207 = acosd(DFP_precompile_183)
+DFP_precompile_208 = atand(DFP_precompile_182)
+DFP_precompile_209 = atan(DFP_precompile_183,DFP_precompile_182)
+DFP_precompile_210 = atand(DFP_precompile_183,DFP_precompile_182)
+DFP_precompile_211 = DFP_precompile_183 == DFP_precompile_182
+DFP_precompile_212 = DFP_precompile_183 != DFP_precompile_182
+DFP_precompile_213 = DFP_precompile_183 < DFP_precompile_182
+DFP_precompile_214 = DFP_precompile_183 <= DFP_precompile_182
+DFP_precompile_215 = DFP_precompile_183 > DFP_precompile_182
+DFP_precompile_216 = DFP_precompile_183 >= DFP_precompile_182
+# Existing function print_DFP(f,80)
+
+# Inside function print_DFP(f,100)
+DFP_precompile_217 = convert(DFP{100},Base.pi)
+DFP_precompile_218 = sqrt(DFP{100}(2))
+DFP_precompile_219 = sqrt(DFP{100}(0.7))
+DFP_precompile_220 = DFP_precompile_217 + DFP_precompile_218
+DFP_precompile_221 = DFP_precompile_217 - DFP_precompile_218
+DFP_precompile_223 = DFP_precompile_217 * DFP_precompile_218
+DFP_precompile_224 = DFP_precompile_217 / DFP_precompile_218
+DFP_precompile_225 = DFP_precompile_217 ^ DFP_precompile_218
+DFP_precompile_226 = sin(DFP_precompile_218)
+DFP_precompile_227 = cos(DFP_precompile_218)
+DFP_precompile_228 = tan(DFP_precompile_218)
+DFP_precompile_229 = log(DFP_precompile_218)
+DFP_precompile_230 = log(DFP_precompile_217,DFP_precompile_218)
+DFP_precompile_231 = log2(DFP_precompile_218)
+DFP_precompile_232 = log10(DFP_precompile_218)
+DFP_precompile_233 = exp(DFP_precompile_218)
+DFP_precompile_234 = exp2(DFP_precompile_218)
+DFP_precompile_235 = exp10(DFP_precompile_218)
+DFP_precompile_236 = sind(DFP_precompile_218)
+DFP_precompile_237 = cosd(DFP_precompile_218)
+DFP_precompile_238 = tand(DFP_precompile_218)
+DFP_precompile_239 = asin(DFP_precompile_219)
+DFP_precompile_240 = acos(DFP_precompile_219)
+DFP_precompile_241 = atan(DFP_precompile_218)
+DFP_precompile_242 = asind(DFP_precompile_219)
+DFP_precompile_243 = acosd(DFP_precompile_219)
+DFP_precompile_244 = atand(DFP_precompile_218)
+DFP_precompile_245 = atan(DFP_precompile_219,DFP_precompile_218)
+DFP_precompile_246 = atand(DFP_precompile_219,DFP_precompile_218)
+DFP_precompile_247 = DFP_precompile_219 == DFP_precompile_218
+DFP_precompile_248 = DFP_precompile_219 != DFP_precompile_218
+DFP_precompile_249 = DFP_precompile_219 < DFP_precompile_218
+DFP_precompile_250 = DFP_precompile_219 <= DFP_precompile_218
+DFP_precompile_251 = DFP_precompile_219 > DFP_precompile_218
+DFP_precompile_252 = DFP_precompile_219 >= DFP_precompile_218
+# Existing function print_DFP(f,100)
 
 
 end
